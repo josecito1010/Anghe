@@ -4,42 +4,76 @@
 <title>LOS GALACTICOS</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;color:#fff;font-family:sans-serif;overflow:hidden;height:100vh}
-#escenario{position:fixed;top:0;left:0;width:100%;height:100%;background:#000}
-video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden}
+body{font-family:Arial,sans-serif}
+
+/* VIDEO A PANTALLA COMPLETA, SIN BORDES, NITIDO */
+#escenario{position:fixed;top:0;left:0;width:100vw;height:100dvh;background:#000}
+video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;opacity:0;background:#000}
 video.activo{opacity:1}
-#barra{position:fixed;bottom:0;left:0;width:100%;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,0.85));text-align:center;z-index:10}
-#mic{font-size:20px;padding:18px 20px;width:100%;border-radius:50px;border:none;background:#FFD700;font-weight:bold}
+
+/* BOTONES QUE SE ESCONDEN SOLOS */
+#barra{position:fixed;bottom:0;left:0;width:100%;padding:12px;background:linear-gradient(transparent,rgba(0,0,0,0.7));text-align:center;z-index:10;transition:opacity 0.5s, transform 0.5s}
+#barra.oculta{opacity:0;pointer-events:none;transform:translateY(20px)}
+#mic{font-size:15px;padding:14px 20px;width:100%;border-radius:50px;border:none;background:#FFD700;color:#000;font-weight:900;box-shadow:0 0 15px rgba(0,0,0,0.5)}
 #mic.activo{background:#00C853;color:#fff}
-#texto{margin:10px 0;color:#FFD700;font-size:16px}
-.botones{display:flex;gap:10px;justify-content:center}
-.botones button{flex:1;background:#333;color:#fff;font-size:22px;font-weight:bold;padding:20px 10px;min-height:70px;border:none;border-radius:18px}
+#texto{margin:8px 0;color:#fff;font-size:13px;text-shadow:0 2px 5px #000}
+.botones{display:flex;gap:8px;justify-content:center}
+.botones button{flex:1;background:rgba(0,0,0,0.6);backdrop-filter:blur(5px);color:#fff;font-size:14px;font-weight:900;padding:16px 5px;border:1px solid rgba(255,255,255,0.4);border-radius:14px}
 .botones button:active{background:#FFD700;color:#000}
+
+/* BOTONCITO PARA VOLVER A MOSTRAR LOS CONTROLES */
+#mostrar{position:fixed;bottom:15px;right:15px;z-index:20;width:45px;height:45px;border-radius:50%;background:rgba(0,0,0,0.5);color:#fff;border:1px solid rgba(255,255,255,0.5);font-size:20px;display:none}
+#mostrar.visible{display:block}
 </style>
 </head><body>
 <div id="escenario">
-  <video id="v1" playsinline loop muted preload="auto"></video>
-  <video id="v2" playsinline loop muted preload="auto"></video>
+  <video id="v1" playsinline loop muted preload="auto" disablepictureinpicture></video>
+  <video id="v2" playsinline loop muted preload="auto" disablepictureinpicture></video>
 </div>
+
 <div id="barra">
-  <button id="mic">TOCA UNA VEZ PARA ACTIVAR VOZ</button>
+  <button id="mic">🎤 TOCA UNA VEZ PARA ACTIVAR VOZ</button>
   <div id="texto">Toca el boton para empezar...</div>
-  <div class="botones"><button onclick="playVideo('derecha')">DERECHA</button><button onclick="playVideo('izquierda')">IZQUIERDA</button><button onclick="playVideo('sonrisa')">SONRISA</button></div>
+  <div class="botones">
+    <button onclick="playVideo('derecha')">DERECHA</button>
+    <button onclick="playVideo('izquierda')">IZQUIERDA</button>
+    <button onclick="playVideo('sonrisa')">SONRISA</button>
+  </div>
 </div>
+<button id="mostrar">☰</button>
+
 <script>
 const v1=document.getElementById('v1');const v2=document.getElementById('v2');
 const texto=document.getElementById('texto');const btn=document.getElementById('mic');
+const barra=document.getElementById('barra');const mostrar=document.getElementById('mostrar');
 let actual=v1;let otro=v2;let actualNombre='derecha';
+let timerOcultar;
 
-// Empieza de una vez, sin esperar a que carguen los 3
+function ocultarBarra(){
+  clearTimeout(timerOcultar);
+  timerOcultar=setTimeout(()=>{
+    barra.classList.add('oculta');
+    mostrar.classList.add('visible');
+  },4000); // se esconde a los 4 segundos
+}
+function mostrarBarra(){
+  barra.classList.remove('oculta');
+  mostrar.classList.remove('visible');
+  ocultarBarra();
+}
+mostrar.onclick=mostrarBarra;
+document.getElementById('escenario').onclick=()=>{
+  if(barra.classList.contains('oculta')) mostrarBarra();
+};
+
 v1.src='derecha.mp4';v1.loop=true;v1.muted=true;v1.volume=0;v1.classList.add('activo');v1.play();
-v1.onerror=()=>{texto.textContent='No encuentro derecha.mp4 - revisa que este en la misma carpeta';};
-// Precarga los otros 2 en segundo plano, sin bloquear
+v1.onerror=()=>{texto.textContent='No encuentro derecha.mp4';};
 let pre1=document.createElement('video');pre1.src='izquierda.mp4';pre1.preload='auto';pre1.muted=true;
 let pre2=document.createElement('video');pre2.src='sonrisa.mp4';pre2.preload='auto';pre2.muted=true;
 
 function playVideo(n){
-  if(n===actualNombre) return;
+  if(n===actualNombre){mostrarBarra();return;}
   actualNombre=n;
   otro.src=n+'.mp4';otro.loop=true;otro.muted=true;otro.volume=0;otro.currentTime=0;
   otro.play().then(()=>{
@@ -47,17 +81,20 @@ function playVideo(n){
     actual.pause();
     let tmp=actual;actual=otro;otro=tmp;
     texto.textContent='Reproduciendo: '+n;
+    ocultarBarra();
   }).catch(()=>{texto.textContent='No encuentro '+n+'.mp4';});
 }
 let rec=null;
 function empezarVoz(){
   const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!Rec){texto.textContent='Usa Firefox o Edge';return;}
+  if(!Rec){texto.textContent='Usa Chrome o Edge';return;}
   rec=new Rec();rec.lang='es-PE';rec.continuous=true;rec.interimResults=false;
   rec.onresult=(e)=>{const t=e.results[e.results.length-1][0].transcript.toLowerCase();if(t.includes('derecha'))playVideo('derecha');else if(t.includes('izquierda'))playVideo('izquierda');else if(t.includes('sonrisa'))playVideo('sonrisa');else if(t.includes('pausa')||t.includes('para'))actual.pause();};
   rec.onend=()=>{try{rec.start();}catch(e){}};
   rec.onerror=()=>{try{rec.start();}catch(e){}};
-  rec.start();btn.textContent='VOZ ACTIVADA - SOLO HABLA';btn.classList.add('activo');texto.textContent='Escuchando siempre...';
+  rec.start();btn.textContent='✅ VOZ ACTIVADA - SOLO HABLA';btn.classList.add('activo');texto.textContent='Escuchando siempre...';
+  ocultarBarra();
 }
 btn.onclick=empezarVoz;
+ocultarBarra();
 </script></body></html>
